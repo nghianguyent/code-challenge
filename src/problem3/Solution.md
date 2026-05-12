@@ -4,14 +4,15 @@ List out the computational inefficiencies and anti-patterns found in the code bl
 
 ## Issues found in the code
 
-### **Issue 1: Using `any` type for `blockchain`**
+### Issue 1: Using `any` type for `blockchain`
 
 - Should have enum for blockchain. An any variable make confuse.
 - Function getPriority should be separated. This will make the code cleaner and easier to reuse and maintain.
 
 **Fix**:
 
-Add blockchain type for WalletBalance and create a helper function to get the priority of the blockchain.
+- Add blockchain type for WalletBalance and create a `PRIORITY_BLOCKCHAIN` record map.
+- Create a helper function `getPriority` to get the priority of the blockchain.
 
 **Replacement:**
 
@@ -37,29 +38,13 @@ const getPriority = (blockchain: Blockchain): number => {
 };
 ```
 
-### Issue 2: Using `switch` statement
-
-Using switch statement is not efficient and make the code harder to maintain. Prefer using record map instead.
-
-**Replacement:**
-
-```typescript
-constPRIORITY_BLOCKCHAIN: Record<Blockchain, number> = {
-  [Blockchain.Osmosis]: 100,
-  [Blockchain.Ethereum]: 50,
-  [Blockchain.Arbitrum]: 30,
-  [Blockchain.Zilliqa]: 20,
-  [Blockchain.Neo]: 20,
-};
-
-const getPriority = (blockchain: Blockchain): number => {
-  return PRIORITY_BLOCKCHAIN[blockchain] || -99;
-};
-```
-
-### Issue 3: Missing blockchain type for WalletBalance
+### Issue 2: Missing blockchain type for WalletBalance
 
 WalletBalance is missing the blockchain type, which should be an enum of Blockchain.
+
+**Fix:**
+
+Add blockchain type for WalletBalance and create a helper function to get the priority of the blockchain.
 
 **Replacement:**
 
@@ -71,7 +56,7 @@ interface WalletBalance {
 }
 ```
 
-### Issue 4: Bug on `sortedBalances` filtering code
+### Issue 3: Bug on `sortedBalances` filtering code
 
 - Wrong `lshPriority` variable. It should be `balancePriority`.
 - Logical error when checking the balance. The available `balance.amount` should be greater than or equal to 0.
@@ -91,9 +76,13 @@ interface WalletBalance {
 })
 ```
 
-### Issue 5: Could be optimization on `sortedBalances` sorting code
+### Issue 4: Could be optimization on `sortedBalances` sorting code
 
 The sorting code can be simplified by returning `leftPriority - rightPriority` instead of using `if` statements.
+
+**Fix:**
+
+Change `if` statements to return `leftPriority - rightPriority`.
 
 **Replacement:**
 
@@ -105,7 +94,7 @@ The sorting code can be simplified by returning `leftPriority - rightPriority` i
 })
 ```
 
-### Issue 6: Redundant dependency on `useMemo` function for `sortedBalances`
+### Issue 5: Redundant dependency on `useMemo` function for `sortedBalances`
 
 The prices in the dependency array is not needed since it's not used in the `sortedBalances` variable.
 
@@ -122,7 +111,7 @@ const sortedBalances = useMemo(() => {
 }, [balances]); // <-- Remove prices from dependency array
 ```
 
-### Issue 7: Missing `useMemo` hook for `formattedBalances`
+### Issue 6: Missing `useMemo` hook for `formattedBalances`
 
 - The `formattedBalances` is not memoized and will be created in every render. This will cause performance issue.
 - `toFixed()` function without arguments will use the default value which is 0.
@@ -162,7 +151,7 @@ const formattedBalances: FormattedWalletBalance[] = useMemo<
 }, [balances]);
 ```
 
-### Issue 8: `rows` variable is not needed
+### Issue 7: `rows` variable is not needed
 
 The rows is not memoize and will be created in every render. This will cause performance issue.
 
@@ -191,7 +180,7 @@ return (
   );
 ```
 
-### Issue 9: `usdValue` calculation may lead to NaN
+### Issue 8: `usdValue` calculation may lead to NaN
 
 Because the `balance.currency` is a unknown string, it may lead to `NaN` when calculating `usdValue`.
 
@@ -199,17 +188,21 @@ Because the `balance.currency` is a unknown string, it may lead to `NaN` when ca
 
 Use nullish coalescing operator `??` to avoid `NaN`.
 
+**Replacement:**
+
 ```typescript
 const usdValue = (prices[balance.currency] ?? 0) * balance.amount;
 ```
 
-### Issue 10: `key` is not stable
+### Issue 9: `key` is not stable
 
 The `key` in the `map` function when rendering `WalletRow` is using the index, which is not stable. This can cause performance issue when the array is re-ordered.
 
 **Fix:**
 
 Use a stable key, such as the `balance.blockchain`.
+
+**Replacement:**
 
 ```typescript
  <WalletRow
